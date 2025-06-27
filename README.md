@@ -1,6 +1,6 @@
 # StrapiRestClient Usage Guide
 
-StrapiRestClient is specifically designed for **Strapi v5** to get content via the REST API and provides support for the new populate syntax.
+StrapiRestClient is a C# .NET client specifically designed for **Strapi v5** to get content via the REST API from your Strapi instance.
 
 This guide provides instructions and examples on how to implement and use the `StrapiRestClient` library in your .NET applications.
 
