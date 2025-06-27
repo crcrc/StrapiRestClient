@@ -77,15 +77,31 @@ namespace StrapiRestClient.Extensions
                     queryParams.Add($"{prefix}=*");
                     break;
 
+                case string str when str.Contains(","):
+                    // Legacy: comma-separated simple populates
+                    queryParams.Add($"{prefix}={str}");
+                    break;
+
+                case List<string> stringList:
+                    // Strapi v5: array-style populate parameters
+                    for (int i = 0; i < stringList.Count; i++)
+                    {
+                        queryParams.Add($"{prefix}[{i}]={stringList[i]}");
+                    }
+                    break;
+
                 case Dictionary<string, object> dictionary:
                     foreach (var (key, value) in dictionary)
                     {
-                        if (key == "fields" && value is List<string> fieldsList)
+                        if (key == "fields" && value is string fieldsStr)
                         {
-                            for (int i = 0; i < fieldsList.Count; i++)
-                            {
-                                queryParams.Add($"{prefix}[fields][{i}]={fieldsList[i]}");
-                            }
+                            // Strapi v5: comma-separated fields
+                            queryParams.Add($"{prefix}[fields]={fieldsStr}");
+                        }
+                        else if (key == "fields" && value is List<string> fieldsList)
+                        {
+                            // Legacy support: convert list to comma-separated for v5
+                            queryParams.Add($"{prefix}[fields]={string.Join(",", fieldsList)}");
                         }
                         else
                         {

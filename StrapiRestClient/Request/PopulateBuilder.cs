@@ -77,9 +77,9 @@ namespace StrapiRestClient.Request
         }
 
         /// <summary>
-        /// Converts the populate builder configuration to an object suitable for Strapi API requests.
+        /// Converts the populate builder configuration to an object suitable for Strapi v5 API requests.
         /// </summary>
-        /// <returns>An object representing the populate query, which can be a string "*" or a dictionary.</returns>
+        /// <returns>An object representing the populate query, optimized for Strapi v5 syntax.</returns>
                 public object ToObject()
         {
             if (Fields != null && Fields.Contains("*") && Children.Count == 0) return "*";
@@ -87,17 +87,55 @@ namespace StrapiRestClient.Request
             var result = new Dictionary<string, object>();
             if (Fields?.Count > 0)
             {
-                result["fields"] = Fields;
+                result["fields"] = string.Join(",", Fields);
             }
 
             if (Children.Count > 0)
             {
-                var populateDict = new Dictionary<string, object>();
+                // For Strapi v5, check if all children are simple populates (no fields, no nested children)
+                var simplePopulates = new List<string>();
+                var complexPopulates = new Dictionary<string, object>();
+
                 foreach (var (key, value) in Children)
                 {
-                    populateDict[key] = value.ToObject();
+                    var childObj = value.ToObject();
+                    
+                    // If it's just "*", it's a simple populate
+                    if (childObj is string s && s == "*")
+                    {
+                        simplePopulates.Add(key);
+                    }
+                    else
+                    {
+                        complexPopulates[key] = childObj;
+                    }
                 }
-                result["populate"] = populateDict;
+
+                // For root level, return simple populates as array for Strapi v5 format
+                if (string.IsNullOrEmpty(Name) && simplePopulates.Count > 0 && complexPopulates.Count == 0 && result.Count == 0)
+                {
+                    return simplePopulates;
+                }
+
+                // Mixed case: return dictionary format
+                if (simplePopulates.Count > 0 || complexPopulates.Count > 0)
+                {
+                    var populateDict = new Dictionary<string, object>();
+                    
+                    // Add simple populates as individual entries
+                    foreach (var simple in simplePopulates)
+                    {
+                        populateDict[simple] = "*";
+                    }
+                    
+                    // Add complex populates
+                    foreach (var (key, value) in complexPopulates)
+                    {
+                        populateDict[key] = value;
+                    }
+                    
+                    result["populate"] = populateDict;
+                }
             }
 
             if (result.Count == 0) return "*";

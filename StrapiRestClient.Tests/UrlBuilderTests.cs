@@ -67,7 +67,7 @@ namespace StrapiRestClient.Tests
             var request = StrapiRequest.Get("articles")
                                         .WithPopulate("category");
             var url = UrlBuilder.Create(BaseUrl, request);
-            Assert.Equal("http://localhost:1337/api/articles?populate[category]=*", url);
+            Assert.Equal("http://localhost:1337/api/articles?populate[0]=category", url);
         }
 
         [Fact]
@@ -85,7 +85,17 @@ namespace StrapiRestClient.Tests
             var request = StrapiRequest.Get("articles")
                                         .WithPopulateFields("category", "name", "slug");
             var url = UrlBuilder.Create(BaseUrl, request);
-            Assert.Equal("http://localhost:1337/api/articles?populate[category][fields][0]=name&populate[category][fields][1]=slug", url);
+            Assert.Equal("http://localhost:1337/api/articles?populate[category][fields]=name,slug", url);
+        }
+
+        [Fact]
+        public void Create_Should_Build_Correct_Url_With_Multiple_Populate_Relations()
+        {
+            var request = StrapiRequest.Get("articles")
+                                        .WithPopulate("category")
+                                        .WithPopulate("author");
+            var url = UrlBuilder.Create(BaseUrl, request);
+            Assert.Equal("http://localhost:1337/api/articles?populate[0]=category&populate[1]=author", url);
         }
 
         [Fact]

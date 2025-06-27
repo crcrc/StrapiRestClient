@@ -27,7 +27,7 @@ namespace StrapiRestClient.Tests
         {
             // First: Get all articles
             var listRequest = StrapiRequest.Get("articles")
-                 .WithPopulate("category.author");
+                 .WithPopulate("category").WithPopulate("author");
             var listResponse = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(listRequest);
 
             Assert.True(listResponse.IsSuccess);
