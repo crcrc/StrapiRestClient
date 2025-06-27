@@ -71,6 +71,24 @@ namespace StrapiRestClient.RestClient
             }
         }
 
+        /// <inheritdoc />
+        public async Task<string> GetRawJsonAsync(StrapiRequest request, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                using var response = await SendAsync(request, cancellationToken);
+                var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
+                
+                _logger.LogDebug("Raw JSON response from Strapi: {Json}", jsonString);
+                return jsonString;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get raw JSON from Strapi at {Endpoint}", request.ContentType);
+                throw;
+            }
+        }
+
         private async Task<HttpResponseMessage> SendAsync(StrapiRequest request, CancellationToken cancellationToken)
         {
             var url = UrlBuilder.Create(_httpClient.BaseAddress.ToString(), request);

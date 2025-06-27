@@ -324,5 +324,15 @@ namespace StrapiRestClient.Request
             Filters.Clear();
             return this;
         }
+
+        /// <summary>
+        /// Gets the query URL that will be generated for this request (useful for debugging and model generation).
+        /// </summary>
+        /// <param name="baseUrl">The base URL of your Strapi instance.</param>
+        /// <returns>The complete URL that would be used for this request.</returns>
+        public string GetQueryUrl(string baseUrl)
+        {
+            return Extensions.UrlBuilder.Create(baseUrl, this);
+        }
     }
 }
