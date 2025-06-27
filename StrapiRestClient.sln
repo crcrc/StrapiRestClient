@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StrapiRestClient", "StrapiRestClient\StrapiRestClient.csproj", "{D3DFE18F-989C-F33E-939A-66DAABBB5167}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StrapiRestClient.Tests", "StrapiRestClient.Tests\StrapiRestClient.Tests.csproj", "{4415AD07-5FD8-6213-330E-6DBC8AB4AC98}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D3DFE18F-989C-F33E-939A-66DAABBB5167}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3DFE18F-989C-F33E-939A-66DAABBB5167}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3DFE18F-989C-F33E-939A-66DAABBB5167}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3DFE18F-989C-F33E-939A-66DAABBB5167}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4415AD07-5FD8-6213-330E-6DBC8AB4AC98}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4415AD07-5FD8-6213-330E-6DBC8AB4AC98}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4415AD07-5FD8-6213-330E-6DBC8AB4AC98}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4415AD07-5FD8-6213-330E-6DBC8AB4AC98}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4B81224C-C8AF-463F-9E47-1C5448E8BF5A}
+	EndGlobalSection
+EndGlobal
