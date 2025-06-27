@@ -74,7 +74,7 @@ namespace StrapiRestClient.Tests
         public void Create_Should_Build_Correct_Url_With_Populate_Nested_Relation()
         {
             var request = StrapiRequest.Get("articles")
-                                        .WithPopulate("category").WithPopulate("author");
+                                        .WithPopulate("category.author");
             var url = UrlBuilder.Create(BaseUrl, request);
             Assert.Equal("http://localhost:1337/api/articles?populate[category][populate][author]=*", url);
         }

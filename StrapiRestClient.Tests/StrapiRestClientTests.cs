@@ -26,7 +26,8 @@ namespace StrapiRestClient.Tests
         public async Task Get_Articles_Then_Get_Single_Article_Should_Work()
         {
             // First: Get all articles
-            var listRequest = StrapiRequest.Get("articles");
+            var listRequest = StrapiRequest.Get("articles")
+                 .WithPopulate("category.author");
             var listResponse = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(listRequest);
 
             Assert.True(listResponse.IsSuccess);

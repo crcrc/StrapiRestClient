@@ -58,7 +58,20 @@ namespace StrapiRestClient.Request
         /// <summary>
         /// Gets the populate object for the request.
         /// </summary>
-        public object? PopulateObject => _populateRoot.ToObject();
+        public object? PopulateObject
+        {
+            get
+            {
+                var obj = _populateRoot.ToObject();
+                // Only return the populate object if it's not just a default "*" when no actual populate was requested.
+                // This prevents adding ?populate=* to every request by default.
+                if (obj is string s && s == "*" && _populateRoot.Children.Count == 0 && (_populateRoot.Fields == null || _populateRoot.Fields.Count == 0))
+                {
+                    return null;
+                }
+                return obj;
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StrapiRequest"/> class.

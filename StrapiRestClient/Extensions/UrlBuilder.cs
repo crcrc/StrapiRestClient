@@ -23,9 +23,11 @@ namespace StrapiRestClient.Extensions
 
             // Handle populate parameters
             var populateObject = request.PopulateObject;
-            if (populateObject != null && populateObject is Dictionary<string, object> dict && dict.Any())
+            if (populateObject != null)
             {
-                FlattenPopulate(populateObject, "populate", queryParams);
+                var populateParams = new List<string>();
+                FlattenPopulate(populateObject, "populate", populateParams);
+                queryParams.AddRange(populateParams);
             }
 
             // Process filters

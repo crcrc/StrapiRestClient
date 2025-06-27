@@ -30,17 +30,25 @@ namespace StrapiRestClient.Request
         /// <param name="name">The name of the relation to populate.</param>
         /// <returns>A new <see cref="PopulateBuilder"/> instance for the specified relation.</returns>
         /// <exception cref="ArgumentException">Thrown if the name is null or empty.</exception>
-        public PopulateBuilder Populate(string name)
+                public PopulateBuilder Populate(string name)
         {
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentException("Name cannot be null or empty", nameof(name));
 
-            if (!Children.ContainsKey(name))
+            var parts = name.Split(new[] { '.' }, 2);
+            var childName = parts[0];
+
+            if (!Children.ContainsKey(childName))
             {
-                Children[name] = new PopulateBuilder { Name = name };
+                Children[childName] = new PopulateBuilder { Name = childName };
             }
 
-            return Children[name];
+            if (parts.Length > 1)
+            {
+                return Children[childName].Populate(parts[1]);
+            }
+
+            return Children[childName];
         }
 
         /// <summary>
@@ -72,28 +80,31 @@ namespace StrapiRestClient.Request
         /// Converts the populate builder configuration to an object suitable for Strapi API requests.
         /// </summary>
         /// <returns>An object representing the populate query, which can be a string "*" or a dictionary.</returns>
-        public object ToObject()
+                public object ToObject()
         {
-            if (Fields != null && Fields.Contains("*"))
-            {
-                return "*";
-            }
-
-            if (Children.Count == 0 && (Fields == null || Fields.Count == 0))
-            {
-                return null;
-            }
+            if (Fields != null && Fields.Contains("*") && Children.Count == 0) return "*";
 
             var result = new Dictionary<string, object>();
-
             if (Fields?.Count > 0)
             {
                 result["fields"] = Fields;
             }
 
-            foreach (var (key, value) in Children)
+            if (Children.Count > 0)
             {
-                result[key] = value.ToObject();
+                var populateDict = new Dictionary<string, object>();
+                foreach (var (key, value) in Children)
+                {
+                    populateDict[key] = value.ToObject();
+                }
+                result["populate"] = populateDict;
+            }
+
+            if (result.Count == 0) return "*";
+            
+            if (string.IsNullOrEmpty(Name) && result.ContainsKey("populate"))
+            {
+                return result["populate"];
             }
 
             return result;
