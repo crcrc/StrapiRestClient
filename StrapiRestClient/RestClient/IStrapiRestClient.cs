@@ -15,8 +15,8 @@ namespace StrapiRestClient.RestClient
         /// <typeparam name="T">The type to deserialize the successful response data into.</typeparam>
         /// <param name="request">The Strapi request to execute.</param>
         /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
-        /// <returns>A <see cref="StrapiResponse{T}"/> containing the deserialized data or error information.</returns>
-        Task<StrapiResponse<T>> ExecuteAsync<T>(StrapiRequest request, CancellationToken cancellationToken = default) where T : class;
+        /// <returns>A <see cref="StrapiResult{T}"/> containing the deserialized data or error information.</returns>
+        Task<StrapiResult<T>> ExecuteAsync<T>(StrapiRequest request, CancellationToken cancellationToken = default) where T : class;
 
         /// <summary>
         /// Executes a request and returns the raw JSON response (useful for model generation with "Paste JSON as Classes").

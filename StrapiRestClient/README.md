@@ -115,16 +115,16 @@ public class MyService
     public async Task<List<Article>?> GetArticlesAsync()
     {
         var request = StrapiRequest.Get("articles");
-        var response = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(request);
+        var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
         if (response.IsSuccess)
         {
-            return response.Data?.Data?.ToList();
+            return response.Data?.ToList();
         }
         else
         {
-            // Handle error: response.Error, response.StatusCode
-            Console.WriteLine($"Error: {response.Error?.Message} (Status: {response.StatusCode})");
+            // Handle error: response.ErrorMessage, response.StatusCode
+            Console.WriteLine($"Error: {response.ErrorMessage} (Status: {response.StatusCode})");
             return null;
         }
     }
@@ -135,11 +135,11 @@ public class MyService
 
 ```csharp
 var request = StrapiRequest.Get("articles", "/abc123def456"); // Get article with documentId 'abc123def456'
-var response = await _strapiRestClient.ExecuteAsync<StrapiResponse<Article>>(request);
+var response = await _strapiRestClient.ExecuteAsync<Article>(request);
 
 if (response.IsSuccess)
 {
-    Console.WriteLine($"Article Title: {response.Data?.Data?.Title}");
+    Console.WriteLine($"Article Title: {response.Data?.Title}");
 }
 ```
 
@@ -147,11 +147,11 @@ if (response.IsSuccess)
 
 ```csharp
 var request = StrapiRequest.Get("articles", "/my-first-article"); // Get article with slug 'my-first-article'
-var response = await _strapiRestClient.ExecuteAsync<StrapiResponse<Article>>(request);
+var response = await _strapiRestClient.ExecuteAsync<Article>(request);
 
 if (response.IsSuccess)
 {
-    Console.WriteLine($"Article Title: {response.Data?.Data?.Title}");
+    Console.WriteLine($"Article Title: {response.Data?.Title}");
 }
 ```
 
@@ -179,20 +179,20 @@ using StrapiRestClient.Enums;
 // Get articles with title 'My Awesome Article'
 var request = StrapiRequest.Get("articles")
                            .WithFilter(FilterType.EqualTo, "title", "My Awesome Article");
-var response = await _strapiRestClient.ExecuteAsync<List<Article>>(request);
+var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
 // Get articles published after a certain date and containing 'C#' in description
 var request2 = StrapiRequest.Get("articles")
                             .WithFilter(FilterType.GreaterThan, "publishedAt", "2023-01-01T00:00:00.000Z")
                             .WithFilter(FilterType.Contains, "description", "C#");
-var response2 = await _strapiRestClient.ExecuteAsync<List<Article>>(request2);
+var response2 = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request2);
 
 // Get articles where ID is in a list
 var request3 = StrapiRequest.Get("articles")
                             .WithFilter(FilterType.In, "id", "1")
                             .WithFilter(FilterType.In, "id", "3")
                             .WithFilter(FilterType.In, "id", "5");
-var response3 = await _strapiRestClient.ExecuteAsync<List<Article>>(request3);
+var response3 = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request3);
 ```
 
 #### Sorting Data
@@ -340,62 +340,10 @@ else
 }
 ```
 
-## 4. Model Generation with GetRawJsonAsync
-
-The library includes a `GetRawJsonAsync` method specifically designed to help with model generation. This method returns the raw JSON response from Strapi, which you can then use with Visual Studio's "Paste JSON as Classes" feature.
-
-### Basic Usage
-
-```csharp
-// Get raw JSON for basic articles
-var request = StrapiRequest.Get("articles");
-string rawJson = await _strapiRestClient.GetRawJsonAsync(request);
-Console.WriteLine(rawJson);
-// Output: {"data":[{"documentId":"abc123","title":"Sample Article",...}],"meta":{...}}
-```
-
-### With Relations Populated
-
-```csharp
-// Get raw JSON with populated relations for complete model structure
-var request = StrapiRequest.Get("articles")
-    .WithPopulate("category")
-    .WithPopulate("author")
-    .WithPopulate("tags");
-
-string rawJson = await _strapiRestClient.GetRawJsonAsync(request);
-// This gives you the complete structure including all relation objects
-```
-
-### Model Generation Workflow
-
-1. **Create the request** with all the relations you need populated
-2. **Get raw JSON** using `GetRawJsonAsync`
-3. **Copy the JSON response**
-4. **In Visual Studio**: Edit → Paste Special → Paste JSON as Classes
-5. **Rename the generated classes** to match your needs
-
-### Example Workflow
-
-```csharp
-// Step 1: Create comprehensive request
-var request = StrapiRequest.Get("articles")
-    .WithPopulate("category")
-    .WithPopulate("author")
-    .WithPopulate("featuredImage")
-    .WithPage(1)
-    .WithPageSize(1); // Get just one item for model structure
-
-// Step 2: Get raw JSON
-string rawJson = await _strapiRestClient.GetRawJsonAsync(request);
-
-// Step 3: Copy rawJson and use "Paste JSON as Classes" in Visual Studio
-// Step 4: Clean up generated class names and properties as needed
-```
 
 This approach ensures your C# models match your exact Strapi v5 content structure, including all populated relations.
 
-## 5. Error Handling
+## 4. Error Handling
 
 The `ExecuteAsync` method returns a `StrapiResponse<T>` object, which provides comprehensive information about the API call's outcome.
 
@@ -422,39 +370,3 @@ else
     // You can also inspect response.Error.Details for more specific error information
 }
 ```
-
-## 6. What's New in v2.0 - Strapi v5 Support
-
-### 🚀 **Strapi v5 Compatibility**
-- **Correct populate syntax**: Automatically generates `populate[0]=category&populate[1]=author` format
-- **Document Service API support**: Works with Strapi v5's new document-based structure  
-- **Flat response structure**: Handles the new flatter JSON response format
-
-### 🛠️ **New Methods**
-- **`GetRawJsonAsync()`**: Get raw JSON responses for model generation
-- **`GetQueryUrl()`**: Debug and inspect generated URLs  
-
-### 🔧 **Enhanced Testing**
-- **Comprehensive unit tests**: 12+ new test cases covering all scenarios
-- **Mock support**: Full Moq integration for testing
-- **Integration tests**: Real Strapi v5 API testing
-
-### 📦 **Updated Dependencies**
-- **.NET 9.0 support**: Latest .NET framework compatibility
-- **Enhanced error handling**: Better exception management
-- **Improved logging**: More detailed debug information
-
-### 🔄 **Migration from v1.x**
-If you're upgrading from a previous version:
-
-1. **Update your models** to use the flatter Strapi v5 structure (no nested `attributes`)
-2. **Update response types** to use `StrapiCollectionResponse<T>` for collections
-3. **Use `documentId`** instead of `id` for document references
-4. **Test your populate calls** - they now use the correct v5 syntax automatically
-
-### 🎯 **Performance Improvements**
-- **Reduced memory allocation**: More efficient JSON handling
-- **Better connection management**: Enhanced HTTP client usage
-- **Streamlined URL building**: Optimized query parameter generation
-
-This guide should help you get started with the `StrapiRestClient` library for Strapi v5. For more advanced scenarios, refer to the XML documentation comments within the library's code.

@@ -35,7 +35,7 @@ namespace StrapiRestClient.RestClient
         }
 
         /// <inheritdoc />
-        public async Task<StrapiResponse<T>> ExecuteAsync<T>(StrapiRequest request, CancellationToken cancellationToken = default) where T : class
+        public async Task<StrapiResult<T>> ExecuteAsync<T>(StrapiRequest request, CancellationToken cancellationToken = default) where T : class
         {
             try
             {
@@ -43,31 +43,87 @@ namespace StrapiRestClient.RestClient
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var test = await response.Content.ReadAsStringAsync();
-
-                    var data = await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken);
-                    return new StrapiResponse<T> { Data = data, StatusCode = response.StatusCode };
+                    var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
+                    
+                    // Try to parse as a collection response first (most common case)
+                    if (TryParseAsCollectionResponse<T>(jsonString, out var collectionResult))
+                    {
+                        return new StrapiResult<T>
+                        {
+                            Data = collectionResult.Data,
+                            Meta = collectionResult.Meta,
+                            IsSuccess = true,
+                            StatusCode = response.StatusCode
+                        };
+                    }
+                    
+                    // Try to parse as a single item response
+                    if (TryParseAsSingleItemResponse<T>(jsonString, out var singleResult))
+                    {
+                        return new StrapiResult<T>
+                        {
+                            Data = singleResult.Data,
+                            Meta = singleResult.Meta,
+                            IsSuccess = true,
+                            StatusCode = response.StatusCode
+                        };
+                    }
+                    
+                    // Fallback: parse directly as T
+                    var data = JsonSerializer.Deserialize<T>(jsonString, JsonOptions);
+                    return new StrapiResult<T>
+                    {
+                        Data = data,
+                        IsSuccess = true,
+                        StatusCode = response.StatusCode
+                    };
                 }
                 else
                 {
-                    var error = await response.Content.ReadFromJsonAsync<StrapiErrorResponse>(JsonOptions, cancellationToken);
-                    return new StrapiResponse<T> { Error = error?.Error, StatusCode = response.StatusCode };
+                    var errorJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var errorResponse = JsonSerializer.Deserialize<StrapiErrorResponse>(errorJson, JsonOptions);
+                    
+                    return new StrapiResult<T>
+                    {
+                        IsSuccess = false,
+                        StatusCode = response.StatusCode,
+                        Error = errorResponse?.Error,
+                        ErrorMessage = errorResponse?.Error?.Message ?? $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}"
+                    };
                 }
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP request to Strapi failed: {Endpoint}", request.ContentType);
-                return new StrapiResponse<T> { Error = new StrapiError { Message = ex.Message }, StatusCode = System.Net.HttpStatusCode.InternalServerError };
+                return new StrapiResult<T>
+                {
+                    IsSuccess = false,
+                    StatusCode = System.Net.HttpStatusCode.InternalServerError,
+                    Error = new StrapiError { Message = ex.Message },
+                    ErrorMessage = ex.Message
+                };
             }
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "Failed to parse JSON response from Strapi at {Endpoint}", request.ContentType);
-                return new StrapiResponse<T> { Error = new StrapiError { Message = ex.Message }, StatusCode = System.Net.HttpStatusCode.InternalServerError };
+                return new StrapiResult<T>
+                {
+                    IsSuccess = false,
+                    StatusCode = System.Net.HttpStatusCode.InternalServerError,
+                    Error = new StrapiError { Message = ex.Message },
+                    ErrorMessage = $"JSON parsing error: {ex.Message}"
+                };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error during Strapi request to {Endpoint}", request.ContentType);
-                return new StrapiResponse<T> { Error = new StrapiError { Message = ex.Message }, StatusCode = System.Net.HttpStatusCode.InternalServerError };
+                return new StrapiResult<T>
+                {
+                    IsSuccess = false,
+                    StatusCode = System.Net.HttpStatusCode.InternalServerError,
+                    Error = new StrapiError { Message = ex.Message },
+                    ErrorMessage = ex.Message
+                };
             }
         }
 
@@ -102,6 +158,89 @@ namespace StrapiRestClient.RestClient
             }
 
             return await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
+
+        private bool TryParseAsCollectionResponse<T>(string jsonString, out (T Data, Meta? Meta) result)
+        {
+            result = default;
+            
+            try
+            {
+                // Check if this looks like a collection response by looking for "data" array and "meta"
+                if (jsonString.Contains("\"data\":[") && jsonString.Contains("\"meta\":"))
+                {
+                    // Parse the JSON as a generic object first to extract data and meta
+                    using var document = JsonDocument.Parse(jsonString);
+                    var root = document.RootElement;
+                    
+                    if (root.TryGetProperty("data", out var dataElement) && 
+                        root.TryGetProperty("meta", out var metaElement))
+                    {
+                        // Deserialize the data array directly to T
+                        var dataJson = dataElement.GetRawText();
+                        var data = JsonSerializer.Deserialize<T>(dataJson, JsonOptions);
+                        
+                        // Deserialize the meta object
+                        var metaJson = metaElement.GetRawText();
+                        var meta = JsonSerializer.Deserialize<Meta>(metaJson, JsonOptions);
+                        
+                        if (data != null)
+                        {
+                            result = (data, meta);
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Not a collection response, continue to next parsing attempt
+            }
+            
+            return false;
+        }
+
+        private bool TryParseAsSingleItemResponse<T>(string jsonString, out (T Data, Meta? Meta) result)
+        {
+            result = default;
+            
+            try
+            {
+                // Check if this looks like a single item response by looking for "data" object (not array)
+                if (jsonString.Contains("\"data\":{"))
+                {
+                    // Parse the JSON to extract the data object
+                    using var document = JsonDocument.Parse(jsonString);
+                    var root = document.RootElement;
+                    
+                    if (root.TryGetProperty("data", out var dataElement))
+                    {
+                        // Deserialize the data object directly to T
+                        var dataJson = dataElement.GetRawText();
+                        var data = JsonSerializer.Deserialize<T>(dataJson, JsonOptions);
+                        
+                        // Try to get meta if it exists
+                        Meta? meta = null;
+                        if (root.TryGetProperty("meta", out var metaElement))
+                        {
+                            var metaJson = metaElement.GetRawText();
+                            meta = JsonSerializer.Deserialize<Meta>(metaJson, JsonOptions);
+                        }
+                        
+                        if (data != null)
+                        {
+                            result = (data, meta);
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Not a single item response, continue to fallback parsing
+            }
+            
+            return false;
         }
     }
 }

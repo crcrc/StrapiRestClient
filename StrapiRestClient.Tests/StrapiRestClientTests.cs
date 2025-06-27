@@ -27,20 +27,20 @@ namespace StrapiRestClient.Tests
         {
             // First: Get all articles
             var listRequest = StrapiRequest.Get("articles");
-            var listResponse = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(listRequest);
+            var listResponse = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(listRequest);
 
             Assert.True(listResponse.IsSuccess);
             Assert.NotNull(listResponse.Data);
-            Assert.NotEmpty(listResponse.Data.Data);
+            Assert.NotEmpty(listResponse.Data);
 
             // Second: Get first article by ID
-            var firstArticle = listResponse.Data.Data.First();
+            var firstArticle = listResponse.Data.First();
             var singleRequest = StrapiRequest.Get("articles", $"/{firstArticle.DocumentId}");
-            var singleResponse = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<Article>>(singleRequest);
+            var singleResponse = await _strapiRestClient.ExecuteAsync<Article>(singleRequest);
 
             Assert.True(singleResponse.IsSuccess);
             Assert.NotNull(singleResponse.Data);
-            Assert.Equal(firstArticle.DocumentId, singleResponse.Data.Data.DocumentId);
+            Assert.Equal(firstArticle.DocumentId, singleResponse.Data.DocumentId);
         }
 
         [Fact]
@@ -51,11 +51,11 @@ namespace StrapiRestClient.Tests
                  .WithPopulate("category")
                  .WithPopulate("author");
 
-            var listResponse = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(listRequest);
+            var listResponse = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(listRequest);
 
             Assert.True(listResponse.IsSuccess);
             Assert.NotNull(listResponse.Data);
-            Assert.NotEmpty(listResponse.Data.Data);
+            Assert.NotEmpty(listResponse.Data);
         }
 
         [Fact]
@@ -65,14 +65,14 @@ namespace StrapiRestClient.Tests
             var request = StrapiRequest.Get("articles", "/99999"); // Assuming 99999 does not exist
 
             // Act
-            var response = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(request);
+            var response = await _strapiRestClient.ExecuteAsync<Article>(request);
 
             // Assert
             Assert.False(response.IsSuccess);
-            Assert.NotNull(response.Error);
+            Assert.NotNull(response.ErrorMessage);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-            Assert.Equal(404, response.Error.Status);
-            Assert.Equal("NotFoundError", response.Error.Name);
+            Assert.Equal(404, response.Error?.Status);
+            Assert.Equal("NotFoundError", response.Error?.Name);
         }
 
         [Fact]
@@ -138,15 +138,15 @@ namespace StrapiRestClient.Tests
         {
             // Arrange: First get a list to find a valid ID
             var listRequest = StrapiRequest.Get("articles");
-            var listResponse = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(listRequest);
+            var listResponse = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(listRequest);
             
             // Skip test if no articles exist
-            if (!listResponse.IsSuccess || listResponse.Data?.Data == null || !listResponse.Data.Data.Any())
+            if (!listResponse.IsSuccess || listResponse.Data == null || !listResponse.Data.Any())
             {
                 return; // Skip test if no data available
             }
 
-            var firstArticle = listResponse.Data.Data.First();
+            var firstArticle = listResponse.Data.First();
             var singleRequest = StrapiRequest.Get("articles", $"/{firstArticle.DocumentId}");
 
             // Act
