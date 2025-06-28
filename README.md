@@ -20,7 +20,7 @@ Add your Strapi API base URL and optional API key to your `appsettings.json` fil
 
 ```json
 {
-  "StrapiConnect": {
+  "StrapiRestClient": {
     "BaseUrl": "http://localhost:1337/api",
     "ApiKey": "your-strapi-api-key-if-any"
   }
@@ -38,7 +38,7 @@ using StrapiRestClient.Extensions;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add StrapiRestClient
-builder.Services.AddStrapiConnect(builder.Configuration);
+builder.Services.AddStrapiRestClient(builder.Configuration);
 
 // ... other services
 

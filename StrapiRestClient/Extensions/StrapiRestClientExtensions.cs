@@ -23,17 +23,17 @@ namespace StrapiRestClient.Extensions
         /// <param name="services">The <see cref="IServiceCollection"/> to add the services to.</param>
         /// <param name="configuration">The <see cref="IConfiguration"/> containing application settings.</param>
         /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-        /// <exception cref="InvalidOperationException">Thrown if the "StrapiConnect:BaseUrl" is not configured.</exception>
-        public static IServiceCollection AddStrapiConnect(
+        /// <exception cref="InvalidOperationException">Thrown if the "StrapiRestClient:BaseUrl" is not configured.</exception>
+        public static IServiceCollection AddStrapiRestClient(
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            var baseUrl = configuration["StrapiConnect:BaseUrl"];
-            var apiKey = configuration["StrapiConnect:ApiKey"];
+            var baseUrl = configuration["StrapiRestClient:BaseUrl"];
+            var apiKey = configuration["StrapiRestClient:ApiKey"];
 
             if (string.IsNullOrWhiteSpace(baseUrl))
             {
-                throw new InvalidOperationException("StrapiConnect BaseUrl is not configured.");
+                throw new InvalidOperationException("StrapiRestClient BaseUrl is not configured.");
             }
 
             services.AddHttpClient<IStrapiRestClient, RestClient.StrapiRestClient>(client =>

@@ -16,7 +16,7 @@ namespace StrapiRestClient.Tests
                 .Build();
 
             services.AddSingleton<IConfiguration>(configuration);
-            services.AddStrapiConnect(configuration);
+            services.AddStrapiRestClient(configuration);
         }
     }
 }
