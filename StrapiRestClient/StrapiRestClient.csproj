@@ -16,7 +16,7 @@
     <RepositoryUrl>https://github.com/crcrc/StrapiRestClient</RepositoryUrl>
     <PackageTags>strapi; strapi v5</PackageTags>
     <Description>A simple client for Strapi v5 to pull content from a Strapi instance via the REST API</Description>
-	<PackageReleaseNotes>See https://github.com/crcrc/Toodle.StrapiRestClient/blob/main/CHANGELOG.md for details</PackageReleaseNotes>
+	<PackageReleaseNotes>See https://github.com/crcrc/StrapiRestClient/blob/master/StrapiRestClient/CHANGELOG.MD for details</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
