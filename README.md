@@ -1,4 +1,4 @@
-# StrapiRestClient Usage Guide
+# C# .NET StrapiRestClient Usage Guide
 
 StrapiRestClient is a C# .NET client specifically designed for **Strapi v5** to get content via the REST API from your Strapi instance.
 
