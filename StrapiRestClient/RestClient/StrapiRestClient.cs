@@ -35,7 +35,7 @@ namespace StrapiRestClient.RestClient
         }
 
         /// <inheritdoc />
-        public async Task<StrapiResult<T>> ExecuteAsync<T>(StrapiRequest request, CancellationToken cancellationToken = default) where T : class
+        public async Task<StrapiResult<T>> ExecuteAsync<T>(StrapiQueryRequest request, CancellationToken cancellationToken = default) where T : class
         {
             try
             {
@@ -94,7 +94,7 @@ namespace StrapiRestClient.RestClient
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "HTTP request to Strapi failed: {Endpoint}", request.ContentType);
+                _logger.LogError(ex, "HTTP request to Strapi failed: {Endpoint}", request.ToQueryString());
                 return new StrapiResult<T>
                 {
                     IsSuccess = false,
@@ -105,7 +105,7 @@ namespace StrapiRestClient.RestClient
             }
             catch (JsonException ex)
             {
-                _logger.LogError(ex, "Failed to parse JSON response from Strapi at {Endpoint}", request.ContentType);
+                _logger.LogError(ex, "Failed to parse JSON response from Strapi at {Endpoint}", request.ToQueryString());
                 return new StrapiResult<T>
                 {
                     IsSuccess = false,
@@ -116,7 +116,7 @@ namespace StrapiRestClient.RestClient
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error during Strapi request to {Endpoint}", request.ContentType);
+                _logger.LogError(ex, "Unexpected error during Strapi request to {Endpoint}", request.ToQueryString());
                 return new StrapiResult<T>
                 {
                     IsSuccess = false,
@@ -128,7 +128,7 @@ namespace StrapiRestClient.RestClient
         }
 
         /// <inheritdoc />
-        public async Task<string> GetRawJsonAsync(StrapiRequest request, CancellationToken cancellationToken = default)
+        public async Task<string> GetRawJsonAsync(StrapiQueryRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -140,14 +140,14 @@ namespace StrapiRestClient.RestClient
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to get raw JSON from Strapi at {Endpoint}", request.ContentType);
+                _logger.LogError(ex, "Failed to get raw JSON from Strapi at {Endpoint}", request.ToQueryString());
                 throw;
             }
         }
 
-        private async Task<HttpResponseMessage> SendAsync(StrapiRequest request, CancellationToken cancellationToken)
+        private async Task<HttpResponseMessage> SendAsync(StrapiQueryRequest request, CancellationToken cancellationToken)
         {
-            var url = UrlBuilder.Create(_httpClient.BaseAddress.ToString(), request);
+            var url = request.ToUrl(_httpClient.BaseAddress.ToString());
             _logger.LogDebug("Making request to Strapi: {Url}", url);
 
             var httpRequest = new HttpRequestMessage(new HttpMethod(request.Method.ToString()), url);

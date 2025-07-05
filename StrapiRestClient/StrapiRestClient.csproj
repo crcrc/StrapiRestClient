@@ -20,6 +20,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Extensions\UrlBuilder.cs" />
+    <Compile Remove="Request\StrapiRequest.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

@@ -3,8 +3,10 @@ using StrapiRestClient.Models;
 using StrapiRestClient.Request;
 using StrapiRestClient.RestClient;
 using StrapiRestClient.Tests.Models;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Xunit;
 
 namespace StrapiRestClient.Tests
@@ -22,173 +24,169 @@ namespace StrapiRestClient.Tests
             _strapiRestClient = serviceProvider.GetRequiredService<IStrapiRestClient>();
         }
 
+        //    [Fact]
+        //    public async Task Get_Articles_With_()
+        //    {
+        //        // First: Get all articles
+        //        var zzz = new StrapiQueryRequest("articles")
+        //.WithLocale("en")
+        //.WithStatus("published")
+        //.AddPopulate("author", new PopulateOptions { Fields = new[] { "*" } })
+        //.AddPopulate("category", new PopulateOptions { Fields = new[] { "name", "slug" } })
+        //.AddPopulateAll("blocks")  // Helper for dynamic zones
+        //.WithPagination(page: 1, pageSize: 10)
+        //        .ToQueryString();
+
+        //        var request = new StrapiQueryRequest("articles")
+        //.WithPopulateAll()
+        //.WithStatus("published")
+        //.WithLocale("en")
+        //.AddFilter("title", FilterBuilder.ContainsCaseInsensitive("internet"));
+
+        //          var listResponse = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
+        //    }
+
+
         [Fact]
-        public async Task Get_Articles_Then_Get_Single_Article_Should_Work()
+        public async Task Get_Articles()
         {
-            // First: Get all articles
-            var listRequest = StrapiRequest.Get("articles");
-            var listResponse = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(listRequest);
+            var request = new StrapiQueryRequest("articles");
 
-            Assert.True(listResponse.IsSuccess);
-            Assert.NotNull(listResponse.Data);
-            Assert.NotEmpty(listResponse.Data);
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
-            // Second: Get first article by ID
-            var firstArticle = listResponse.Data.First();
-            var singleRequest = StrapiRequest.Get("articles", $"/{firstArticle.DocumentId}");
-            var singleResponse = await _strapiRestClient.ExecuteAsync<Article>(singleRequest);
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+            Assert.False(string.IsNullOrWhiteSpace(response.Data.First().Title));
+        }
 
-            Assert.True(singleResponse.IsSuccess);
-            Assert.NotNull(singleResponse.Data);
-            Assert.Equal(firstArticle.DocumentId, singleResponse.Data.DocumentId);
+
+        [Fact]
+        public async Task Get_Articles_PopulateAll()
+        {
+            var request = new StrapiQueryRequest("articles")
+                                .WithPopulateAll();
+
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
+
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+            Assert.True(response.Data.First().Blocks.Length > 0);
         }
 
         [Fact]
-        public async Task Get_Articles_With_Populate()
+        public async Task Get_Articles_Draft()
         {
-            // First: Get all articles
-            var listRequest = StrapiRequest.Get("articles")
-                 .WithPopulate("category")
-                 .WithPopulate("author");
+            var request = new StrapiQueryRequest("articles")
+                                .WithStatus("draft");
 
-            var listResponse = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(listRequest);
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
-            Assert.True(listResponse.IsSuccess);
-            Assert.NotNull(listResponse.Data);
-            Assert.NotEmpty(listResponse.Data);
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
         }
 
         [Fact]
-        public async Task Get_NonExistent_Article_Should_Return_Error()
+        public async Task Get_Articles_Draft_PopulateAll()
         {
-            // Arrange
-            var request = StrapiRequest.Get("articles", "/99999"); // Assuming 99999 does not exist
+            var request = new StrapiQueryRequest("articles")
+                                .WithStatus("draft")
+                                .WithPopulateAll();
 
-            // Act
-            var response = await _strapiRestClient.ExecuteAsync<Article>(request);
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
-            // Assert
-            Assert.False(response.IsSuccess);
-            Assert.NotNull(response.ErrorMessage);
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-            Assert.Equal(404, response.Error?.Status);
-            Assert.Equal("NotFoundError", response.Error?.Name);
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+            Assert.True(response.Data.First().Blocks.Length > 0);
         }
 
         [Fact]
-        public async Task GetRawJsonAsync_Should_Return_Valid_Json_String()
+        public async Task Get_Articles_Author_PopulateAll()
         {
-            // Arrange
-            var request = StrapiRequest.Get("articles");
+            var request = new StrapiQueryRequest("articles")
+                                .AddPopulate("author", new PopulateOptions { Fields = new[] { "*" } });
 
-            // Act
-            var rawJson = await _strapiRestClient.GetRawJsonAsync(request);
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
-            // Assert
-            Assert.NotNull(rawJson);
-            Assert.NotEmpty(rawJson);
-            Assert.True(rawJson.StartsWith("{") || rawJson.StartsWith("["), "Response should be valid JSON");
-            Assert.Contains("data", rawJson, StringComparison.OrdinalIgnoreCase);
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+            Assert.False(string.IsNullOrWhiteSpace(response.Data.First().author.name));
+            Assert.False(string.IsNullOrWhiteSpace(response.Data.First().author.email));
+        }
+
+
+        [Fact]
+        public async Task Get_Articles_Author_Populate_Name()
+        {
+            var request = new StrapiQueryRequest("articles")
+                                .AddPopulate("author", new PopulateOptions { Fields = new[] { "name" } });
+
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
+
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+            Assert.False(string.IsNullOrWhiteSpace(response.Data.First().author.name));
+            Assert.True(string.IsNullOrWhiteSpace(response.Data.First().author.email));
         }
 
         [Fact]
-        public async Task GetRawJsonAsync_With_Populate_Should_Return_Json_With_Relations()
+        public async Task Get_Articles_Author_Populate_Name_Email()
         {
-            // Arrange
-            var request = StrapiRequest.Get("articles")
-                .WithPopulate("category")
-                .WithPopulate("author");
+            var request = new StrapiQueryRequest("articles")
+                                .AddPopulate("author", new PopulateOptions { Fields = new[] { "name", "email" } });
 
-            // Act
-            var rawJson = await _strapiRestClient.GetRawJsonAsync(request);
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
-            // Assert
-            Assert.NotNull(rawJson);
-            Assert.NotEmpty(rawJson);
-            Assert.True(rawJson.StartsWith("{") || rawJson.StartsWith("["), "Response should be valid JSON");
-            Assert.Contains("data", rawJson, StringComparison.OrdinalIgnoreCase);
-            
-            // Should contain populated relation data
-            Assert.True(rawJson.Contains("category", StringComparison.OrdinalIgnoreCase) || 
-                       rawJson.Contains("author", StringComparison.OrdinalIgnoreCase), 
-                       "Response should contain populated relation data");
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+            Assert.False(string.IsNullOrWhiteSpace(response.Data.First().author.name));
+            Assert.False(string.IsNullOrWhiteSpace(response.Data.First().author.email));
         }
 
         [Fact]
-        public async Task GetRawJsonAsync_With_Filters_Should_Return_Filtered_Json()
+        public async Task Get_Articles_Author_Populate_Name_Email_Filter_Sarah()
         {
-            // Arrange
-            var request = StrapiRequest.Get("articles")
-                .WithPage(1)
-                .WithPageSize(5);
+            var request = new StrapiQueryRequest("articles")
+                                .AddPopulate("author", new PopulateOptions { Fields = new[] { "name", "email" } })
+                                 .AddRelationFilters("author", new Dictionary<string, object>
+                                 {
+                                     ["name"] = FilterBuilder.Contains("Sarah")
+                                 });
 
-            // Act
-            var rawJson = await _strapiRestClient.GetRawJsonAsync(request);
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
-            // Assert
-            Assert.NotNull(rawJson);
-            Assert.NotEmpty(rawJson);
-            Assert.True(rawJson.StartsWith("{") || rawJson.StartsWith("["), "Response should be valid JSON");
-            Assert.Contains("data", rawJson, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("meta", rawJson, StringComparison.OrdinalIgnoreCase);
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+            Assert.True(response.Data.All(a => a.author.name.Contains("Sarah")));
         }
 
         [Fact]
-        public async Task GetRawJsonAsync_For_Single_Item_Should_Return_Json()
+        public async Task Get_Articles_Author_Populate_Name_Email_Filter_David()
         {
-            // Arrange: First get a list to find a valid ID
-            var listRequest = StrapiRequest.Get("articles");
-            var listResponse = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(listRequest);
-            
-            // Skip test if no articles exist
-            if (!listResponse.IsSuccess || listResponse.Data == null || !listResponse.Data.Any())
-            {
-                return; // Skip test if no data available
-            }
+            var request = new StrapiQueryRequest("articles")
+                                .AddPopulate("author", new PopulateOptions { Fields = new[] { "name" } })
+                                 .AddRelationFilters("author", new Dictionary<string, object>
+                                 {
+                                     ["email"] = FilterBuilder.ContainsCaseInsensitive("David")
+                                 });
 
-            var firstArticle = listResponse.Data.First();
-            var singleRequest = StrapiRequest.Get("articles", $"/{firstArticle.DocumentId}");
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
-            // Act
-            var rawJson = await _strapiRestClient.GetRawJsonAsync(singleRequest);
-
-            // Assert
-            Assert.NotNull(rawJson);
-            Assert.NotEmpty(rawJson);
-            Assert.True(rawJson.StartsWith("{") || rawJson.StartsWith("["), "Response should be valid JSON");
-            Assert.Contains("data", rawJson, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(firstArticle.DocumentId, rawJson, StringComparison.OrdinalIgnoreCase);
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+            Assert.True(response.Data.All(a => a.author.name.Contains("David")));
         }
 
-        [Fact]
-        public async Task GetRawJsonAsync_For_NonExistent_Resource_Should_Throw_Or_Return_Error_Json()
-        {
-            // Arrange
-            var request = StrapiRequest.Get("articles", "/99999"); // Assuming 99999 does not exist
 
-            // Act & Assert
-            try
-            {
-                var rawJson = await _strapiRestClient.GetRawJsonAsync(request);
-                
-                // If it doesn't throw, it should return error JSON
-                Assert.NotNull(rawJson);
-                Assert.NotEmpty(rawJson);
-                Assert.True(rawJson.Contains("error", StringComparison.OrdinalIgnoreCase) || 
-                           rawJson.Contains("404", StringComparison.OrdinalIgnoreCase), 
-                           "Should contain error information in JSON");
-            }
-            catch (HttpRequestException)
-            {
-                // This is also acceptable behavior
-                Assert.True(true, "HttpRequestException thrown as expected for non-existent resource");
-            }
-            catch (Exception ex)
-            {
-                // Any other exception should be related to the HTTP request
-                Assert.True(ex.Message.Contains("404") || ex.Message.Contains("Not Found"), 
-                           $"Exception should be related to 404/Not Found, but was: {ex.Message}");
-            }
-        }
+
+
     }
 }

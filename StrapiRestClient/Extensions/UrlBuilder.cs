@@ -16,7 +16,7 @@ namespace StrapiRestClient.Extensions
         /// <param name="endpoint">The base endpoint of the Strapi API.</param>
         /// <param name="request">The Strapi request object.</param>
         /// <returns>A fully constructed URL for the Strapi API request.</returns>
-        public static string Create(string endpoint, StrapiRequest request)
+        public static string Create(string endpoint, StrapiQueryRequest request)
         {
             var baseUrl = $"{endpoint.TrimEnd('/')}/{request.ContentType}{request.Path}";
             var queryParams = new List<string>();

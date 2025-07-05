@@ -235,13 +235,14 @@ namespace StrapiRestClient.Request
         /// Adds a populate parameter to the request.
         /// </summary>
         /// <param name="relation">The relation to populate.</param>
+        /// <param name="all">Populate relation 1 level deep</param>
         /// <returns>The current <see cref="StrapiRequest"/> instance.</returns>
-        public StrapiRequest WithPopulate(string relation)
+        public StrapiRequest WithPopulate(string relation, bool deep = false)
         {
             if (string.IsNullOrWhiteSpace(relation))
                 throw new ArgumentException("Relation cannot be null or empty", nameof(relation));
 
-            _populateRoot.Populate(relation);
+            _populateRoot.Populate(relation, deep);
             return this;
         }
 
