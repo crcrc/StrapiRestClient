@@ -331,14 +331,62 @@ namespace StrapiRestClient.Request
             if (value == null)
                 return;
 
+            // Handle arrays directly (for logical operators like $or, $and, $not)
+            if (value is Array array)
+            {
+                // Check if this is a logical operator based on the key
+                // Extract the last bracketed part (e.g., "filters[$or]" -> "$or")
+                var lastBracketStart = key.LastIndexOf('[');
+                var lastBracketEnd = key.LastIndexOf(']');
+
+                if (lastBracketStart >= 0 && lastBracketEnd > lastBracketStart)
+                {
+                    var lastPart = key.Substring(lastBracketStart + 1, lastBracketEnd - lastBracketStart - 1);
+
+                    if (lastPart == FilterOperators.Or ||
+                        lastPart == FilterOperators.And ||
+                        lastPart == FilterOperators.Not)
+                    {
+                        // This is a logical operator array - serialize each condition
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            var conditionKey = $"{key}[{i}]";
+                            var condition = array.GetValue(i);
+
+                            if (condition is Dictionary<string, object> conditionDict)
+                            {
+                                // Each condition is a dictionary of field filters
+                                foreach (var conditionFilter in conditionDict)
+                                {
+                                    var fieldKey = $"{conditionKey}[{conditionFilter.Key}]";
+                                    SerializeFilterValue(conditionFilter.Value, fieldKey, parameters);
+                                }
+                            }
+                            else
+                            {
+                                // Fallback for non-dictionary conditions
+                                SerializeFilterValue(condition, conditionKey, parameters);
+                            }
+                        }
+                        return;
+                    }
+                }
+
+                // Regular array (like $in, $notIn, $between)
+                SerializeArray(array.Cast<object>().ToArray(), key, parameters);
+                return;
+            }
+
             if (value is Dictionary<string, object> operators)
             {
                 foreach (var op in operators)
                 {
                     var operatorKey = $"{key}[{op.Key}]";
-                    if (op.Value is Array array)
+
+                    if (op.Value is Array opArray)
                     {
-                        SerializeArray(array.Cast<object>().ToArray(), operatorKey, parameters);
+                        // Handle array operators like $in, $notIn, $between
+                        SerializeArray(opArray.Cast<object>().ToArray(), operatorKey, parameters);
                     }
                     else if (op.Value is Dictionary<string, object> nestedDict)
                     {
