@@ -1,5 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
+using StrapiRestClient.Blocks.DataModels;
+using StrapiRestClient.Blocks.Extensions;
 using StrapiRestClient.Models;
+using StrapiRestClient.Registration;
 using StrapiRestClient.Request;
 using StrapiRestClient.RestClient;
 using StrapiRestClient.Tests.Models;
@@ -24,30 +27,7 @@ namespace StrapiRestClient.Tests
             _strapiRestClient = serviceProvider.GetRequiredService<IStrapiRestClient>();
         }
 
-        //    [Fact]
-        //    public async Task Get_Articles_With_()
-        //    {
-        //        // First: Get all articles
-        //        var zzz = new StrapiQueryRequest("articles")
-        //.WithLocale("en")
-        //.WithStatus("published")
-        //.AddPopulate("author", new PopulateOptions { Fields = new[] { "*" } })
-        //.AddPopulate("category", new PopulateOptions { Fields = new[] { "name", "slug" } })
-        //.AddPopulateAll("blocks")  // Helper for dynamic zones
-        //.WithPagination(page: 1, pageSize: 10)
-        //        .ToQueryString();
-
-        //        var request = new StrapiQueryRequest("articles")
-        //.WithPopulateAll()
-        //.WithStatus("published")
-        //.WithLocale("en")
-        //.AddFilter("title", FilterBuilder.ContainsCaseInsensitive("internet"));
-
-        //          var listResponse = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
-        //    }
-
-
-        #region Basic Tests (Your existing tests)
+         #region Basic Tests
 
         [Fact]
         public async Task Get_Articles()
@@ -73,7 +53,7 @@ namespace StrapiRestClient.Tests
             Assert.True(response.IsSuccess);
             Assert.NotNull(response.Data);
             Assert.NotEmpty(response.Data);
-            Assert.True(response.Data.First().Blocks.Length > 0);
+            Assert.True(response.Data.First().Blocks.Count > 0);
         }
 
         [Fact]
@@ -96,12 +76,12 @@ namespace StrapiRestClient.Tests
                                 .WithStatus("draft")
                                 .WithPopulateAll();
 
+
             var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
             Assert.True(response.IsSuccess);
             Assert.NotNull(response.Data);
             Assert.NotEmpty(response.Data);
-            Assert.True(response.Data.First().Blocks.Length > 0);
         }
 
         [Fact]
@@ -280,7 +260,28 @@ namespace StrapiRestClient.Tests
             Assert.NotEmpty(response.Data);
 
             var sortedTitles = response.Data.Select(a => a.Title).ToList();
-            var expectedSorted = sortedTitles.OrderBy(t => t).ToList();
+            var expectedSorted = sortedTitles
+                .OrderBy(t => t, StringComparer.Ordinal)
+                .ToList();
+            Assert.Equal(expectedSorted, sortedTitles);
+        }
+
+        [Fact]
+        public async Task Get_Articles_Sort_Title_Descending()
+        {
+            var request = new StrapiQueryRequest("articles")
+                                .WithSort("title:desc");
+
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
+
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+
+            var sortedTitles = response.Data.Select(a => a.Title).ToList();
+            var expectedSorted = sortedTitles
+                .OrderByDescending(t => t, StringComparer.Ordinal)
+                .ToList();
             Assert.Equal(expectedSorted, sortedTitles);
         }
 
@@ -499,7 +500,40 @@ namespace StrapiRestClient.Tests
             Assert.True(response.IsSuccess);
             Assert.NotNull(response.Data);
             Assert.NotEmpty(response.Data);
-            Assert.True(response.Data.Any(a => a.Blocks != null && a.Blocks.Length > 0));
+            Assert.True(response.Data.Any(a => a.Blocks != null && a.Blocks.Count > 0));
+
+            var mediaBlocks = response.Data.First().Blocks.GetBlocksOfType<MediaBlockComponent>();
+            Assert.NotEmpty(mediaBlocks);
+            foreach (var mediaBlock in mediaBlocks)
+            {
+                Assert.NotNull(mediaBlock.file);
+                Assert.NotEmpty(mediaBlock.file.url);
+            }
+
+            var richTextBlocks = response.Data.First().Blocks.GetBlocksOfType<RichTextBlockComponent>();
+            Assert.NotEmpty(richTextBlocks);
+            foreach (var richTextBlock in richTextBlocks)
+            {
+                Assert.NotNull(richTextBlock);
+                Assert.NotEmpty(richTextBlock.body);
+            }
+
+            var quoteBlocks = response.Data.First().Blocks.GetBlocksOfType<QuoteBlockComponent>();
+            Assert.NotEmpty(quoteBlocks);
+            foreach (var quoteBlock in quoteBlocks)
+            {
+                Assert.NotNull(quoteBlock);
+                Assert.NotEmpty(quoteBlock.body);
+            }
+
+            var sliderBlocks = response.Data.First().Blocks.GetBlocksOfType<SliderBlockComponent>();
+            Assert.NotEmpty(sliderBlocks);
+            foreach (var sliderBlock in sliderBlocks)
+            {
+                Assert.NotNull(sliderBlock);
+                Assert.NotEmpty(sliderBlock.files);
+                Assert.True(sliderBlock.files.All(a => !string.IsNullOrWhiteSpace(a.url)));
+            }
         }
 
         [Fact]

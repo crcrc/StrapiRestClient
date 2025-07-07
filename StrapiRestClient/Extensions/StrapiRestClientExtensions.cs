@@ -2,6 +2,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Extensions.Http;
+using StrapiRestClient.Registration;
+
 
 //using Microsoft.Extensions.Http;
 using StrapiRestClient.RestClient;
@@ -18,15 +20,17 @@ namespace StrapiRestClient.Extensions
     public static class StrapiRestClientExtensions
     {
         /// <summary>
-        /// Adds and configures the Strapi REST client to the service collection.
+        /// Adds and configures the Strapi REST client to the service collection with block configuration.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/> to add the services to.</param>
         /// <param name="configuration">The <see cref="IConfiguration"/> containing application settings.</param>
+        /// <param name="configureBlocks">Optional action to configure custom block types.</param>
         /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
         /// <exception cref="InvalidOperationException">Thrown if the "StrapiRestClient:BaseUrl" is not configured.</exception>
         public static IServiceCollection AddStrapiRestClient(
             this IServiceCollection services,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            Action<IBlockRegistration>? configureBlocks = null)
         {
             var baseUrl = configuration["StrapiRestClient:BaseUrl"];
             var apiKey = configuration["StrapiRestClient:ApiKey"];
@@ -36,10 +40,10 @@ namespace StrapiRestClient.Extensions
                 throw new InvalidOperationException("StrapiRestClient BaseUrl is not configured.");
             }
 
+            // Configure HTTP client
             services.AddHttpClient<IStrapiRestClient, RestClient.StrapiRestClient>(client =>
             {
                 client.BaseAddress = new Uri(baseUrl);
-
                 if (!string.IsNullOrWhiteSpace(apiKey))
                 {
                     client.DefaultRequestHeaders.Authorization =
@@ -47,6 +51,13 @@ namespace StrapiRestClient.Extensions
                 }
             })
             .AddPolicyHandler(GetRetryPolicy());
+
+            // Configure block types if provided
+            if (configureBlocks != null)
+            {
+                var registration = new BlockRegistration();
+                configureBlocks(registration);
+            }
 
             return services;
         }
