@@ -4,6 +4,21 @@ StrapiRestClient is a C# .NET client specifically designed for **Strapi v5** to 
 
 This guide provides instructions and examples on how to implement and use the `StrapiRestClient` library in your .NET applications.
 
+## Running the tests
+
+To run the tests, in the "strapi-test-instance" is a demo instance with sqlite database populated with data
+
+- npm install
+- npm run dev
+
+Strapi should be available on http://localhost:1337
+
+- email: test@test.com
+- password: Test1234
+
+See the StrapiRestClient.Tests/StrapiRestClientTests.cs file for guidance on how to make requests to the Strapi API.
+
+
 ## 1. Installation
 
 First, add the `StrapiRestClient` NuGet package to your project:
@@ -38,7 +53,7 @@ using StrapiRestClient.Extensions;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add StrapiRestClient
-builder.Services.AddStrapiRestClient(builder.Configuration);
+services.AddStrapiRestClient(configuration);
 
 // ... other services
 
@@ -83,17 +98,6 @@ public class Category
 }
 ```
 
-#### 💡 **Model Generation Tip**
-Use the new `GetRawJsonAsync` method to get actual JSON responses for easy model generation:
-
-```csharp
-// Get raw JSON for model generation
-var request = StrapiRequest.Get("articles").WithPopulate("category").WithPopulate("author");
-string rawJson = await _strapiRestClient.GetRawJsonAsync(request);
-Console.WriteLine(rawJson);
-```
-
-
 ### b. Making GET Requests
 
 #### Get All Entries
@@ -114,19 +118,9 @@ public class MyService
 
     public async Task<List<Article>?> GetArticlesAsync()
     {
-        var request = StrapiRequest.Get("articles");
-        var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
+        var request = new StrapiQueryRequest("articles");
 
-        if (response.IsSuccess)
-        {
-            return response.Data?.ToList();
-        }
-        else
-        {
-            // Handle error: response.ErrorMessage, response.StatusCode
-            Console.WriteLine($"Error: {response.ErrorMessage} (Status: {response.StatusCode})");
-            return null;
-        }
+        var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
     }
 }
 ```
@@ -134,24 +128,30 @@ public class MyService
 #### Get Entry by Document ID (Strapi v5)
 
 ```csharp
-var request = StrapiRequest.Get("articles", "/abc123def456"); // Get article with documentId 'abc123def456'
-var response = await _strapiRestClient.ExecuteAsync<Article>(request);
+var request = new StrapiQueryRequest("articles")
+                   .AddFilter("id", 6)
+                   .WithPopulateAll();
+
+var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
 if (response.IsSuccess)
 {
-    Console.WriteLine($"Article Title: {response.Data?.Title}");
+    Console.WriteLine($"Article Title: {response.Data?.First()?.Title}");
 }
 ```
 
 #### Get Entry by Slug
 
 ```csharp
-var request = StrapiRequest.Get("articles", "/my-first-article"); // Get article with slug 'my-first-article'
-var response = await _strapiRestClient.ExecuteAsync<Article>(request);
+var request = new StrapiQueryRequest("articles")
+                   .AddFilter("slug", "beautiful-picture")
+                   .WithPopulateAll();
+
+var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 
 if (response.IsSuccess)
 {
-    Console.WriteLine($"Article Title: {response.Data?.Title}");
+    Console.WriteLine($"Article Title: {response.Data?.First()?.Title}");
 }
 ```
 
@@ -160,13 +160,16 @@ if (response.IsSuccess)
 Use the new `GetQueryUrl` method to see exactly what URL will be generated:
 
 ```csharp
-var request = StrapiRequest.Get("articles")
-    .WithPopulate("category")
-    .WithPopulate("author");
+var firstPageRequest = new StrapiQueryRequest("articles")
+                                        .WithPagination(page: 1, pageSize: 1)
+                                        .WithSort("id:asc");
 
-string url = request.GetQueryUrl("http://localhost:1337/api");
-Console.WriteLine(url);
-// Output: http://localhost:1337/api/articles?populate[0]=category&populate[1]=author
+var query = firstPageRequest.ToQueryString();
+//sort[0]=id%3aasc&pagination[pageSize]=1&pagination[page]=1
+
+var url = firstPageRequest.ToUrl();
+//http://localhost:1337/articles?sort[0]=id%3aasc&pagination[pageSize]=1&pagination[page]=1
+
 ```
 
 #### Filtering Data
@@ -174,42 +177,29 @@ Console.WriteLine(url);
 Use the fluent `WithFilter` method to apply various filters. You can chain multiple filters.
 
 ```csharp
-using StrapiRestClient.Enums;
+var request = new StrapiQueryRequest("articles")
+                    .AddFilter("title", FilterBuilder.ContainsCaseInsensitive("internet"))
+                    .AddRelationFilter("author", "name", FilterBuilder.Contains("David"))
+                    .AddPopulate("author", new PopulateOptions { Fields = new[] { "name", "email" } })
+                    .AddPopulate("category", new PopulateOptions { Fields = new[] { "name", "slug" } })
+                    .WithFields("title", "slug", "publishedAt", "description")
+                    .WithSort("publishedAt:desc")
+                    .WithPagination(page: 1, pageSize: 10)
+                    .WithStatus("published")
+                    .WithLocale("en");
 
-// Get articles with title 'My Awesome Article'
-var request = StrapiRequest.Get("articles")
-                           .WithFilter(FilterType.EqualTo, "title", "My Awesome Article");
 var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
-
-// Get articles published after a certain date and containing 'C#' in description
-var request2 = StrapiRequest.Get("articles")
-                            .WithFilter(FilterType.GreaterThan, "publishedAt", "2023-01-01T00:00:00.000Z")
-                            .WithFilter(FilterType.Contains, "description", "C#");
-var response2 = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request2);
-
-// Get articles where ID is in a list
-var request3 = StrapiRequest.Get("articles")
-                            .WithFilter(FilterType.In, "id", "1")
-                            .WithFilter(FilterType.In, "id", "3")
-                            .WithFilter(FilterType.In, "id", "5");
-var response3 = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request3);
 ```
 
 #### Sorting Data
 
-Use `WithSort` to order your results. You can specify multiple sort fields.
+Use `WithSort` to order your results.
 
 ```csharp
-// Sort articles by title ascending
-var request = StrapiRequest.Get("articles")
-                           .WithSort("title", SortDirection.Ascending);
-var response = await _strapiRestClient.ExecuteAsync<List<Article>>(request);
+var request = new StrapiQueryRequest("articles")
+                    .WithSort("publishedAt:desc");
 
-// Sort articles by published date descending, then by title ascending
-var request2 = StrapiRequest.Get("articles")
-                            .WithSort("publishedAt", SortDirection.Descending)
-                            .WithSort("title", SortDirection.Ascending);
-var response2 = await _strapiRestClient.ExecuteAsync<List<Article>>(request2);
+var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
 ```
 
 #### Pagination
@@ -217,131 +207,37 @@ var response2 = await _strapiRestClient.ExecuteAsync<List<Article>>(request2);
 Use `WithPage` and `WithPageSize` for pagination.
 
 ```csharp
-// Get the second page of articles, with 10 articles per page
-var request = StrapiRequest.Get("articles")
-                           .WithPage(2)
-                           .WithPageSize(10);
-var response = await _strapiRestClient.ExecuteAsync<List<Article>>(request);
+var firstPageRequest = new StrapiQueryRequest("articles")
+                            .WithPagination(page: 1, pageSize: 1)
+                            .WithSort("id:asc");
 ```
 
-#### Populating Relations (Strapi v5 Syntax)
+#### Populating Relations
 
-Use `WithPopulate` to eager-load related data. **This library automatically uses the correct Strapi v5 array-style populate syntax.**
+Use `WithPopulate` to load related data.
 
 ```csharp
-// Populate multiple relations - generates: populate[0]=category&populate[1]=author
-var request = StrapiRequest.Get("articles")
-                           .WithPopulate("category")
-                           .WithPopulate("author");
-var response = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(request);
+//Populate All - all top level data
+var request = new StrapiQueryRequest("articles")
+                        .AddFilter("id", 6)
+                        .WithPopulateAll();
 
-// Populate nested relations
-var request2 = StrapiRequest.Get("articles")
-                            .WithPopulate("category.author");
-var response2 = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(request2);
+//Populate all fields in relation
+var request = new StrapiQueryRequest("articles")
+                    .AddPopulate("author", new PopulateOptions { Fields = new[] { "*" } });
 
-// Populate all relations (1 level deep)
-var request3 = StrapiRequest.Get("articles")
-                            .WithPopulateAll();
-var response3 = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(request3);
+//Specific fields
+var request = new StrapiQueryRequest("articles")
+                           .AddPopulate("category", new PopulateOptions
+                           {
+                               Fields = new[] { "name", "slug" }
+                           });
 
-// Populate specific fields within a relation - generates: populate[category][fields]=name,slug
-var request4 = StrapiRequest.Get("articles")
-                            .WithPopulateFields("category", "name", "slug");
-var response4 = await _strapiRestClient.ExecuteAsync<StrapiCollectionResponse<ICollection<Article>>>(request4);
+//Populate dynamic blocks
+var request = new StrapiQueryRequest("articles")
+                            .AddPopulateAll("blocks");
 ```
 
-#### ⚡ **Strapi v5 Populate Syntax**
-This library automatically generates the correct Strapi v5 populate URLs:
-- **Multiple relations**: `populate[0]=category&populate[1]=author`
-- **Single relation**: `populate[0]=category`
-- **With fields**: `populate[category][fields]=name,slug`
-- **All relations**: `populate=*`
-
-### c. Making POST Requests
-
-For `POST` requests, provide a C# object as the body. The client will automatically serialize it to JSON.
-
-```csharp
-public class NewArticleData
-{
-    public string? Title { get; set; }
-    public string? Description { get; set; }
-    public string? Slug { get; set; }
-}
-
-// ... inside your service/controller
-
-var newArticle = new NewArticleData
-{
-    Title = "My New Article",
-    Description = "This is a new article created via the API.",
-    Slug = "my-new-article"
-};
-
-var request = StrapiRequest.Post("articles", newArticle);
-var response = await _strapiRestClient.ExecuteAsync<Article>(request);
-
-if (response.IsSuccess)
-{
-    Console.WriteLine($"Successfully created article with ID: {response.Data?.Id}");
-}
-else
-{
-    Console.WriteLine($"Error creating article: {response.Error?.Message}");
-}
-```
-
-### d. Making PUT Requests
-
-Similar to `POST`, provide the updated C# object as the body.
-
-```csharp
-public class UpdateArticleData
-{
-    public string? Title { get; set; }
-    public string? Description { get; set; }
-}
-
-// ... inside your service/controller
-
-var updatedArticleData = new UpdateArticleData
-{
-    Title = "Updated Article Title",
-    Description = "This article has been updated."
-};
-
-var request = StrapiRequest.Put("articles", updatedArticleData, "/1"); // Update article with ID 1
-var response = await _strapiRestClient.ExecuteAsync<Article>(request);
-
-if (response.IsSuccess)
-{
-    Console.WriteLine($"Successfully updated article with ID: {response.Data?.Id}");
-}
-else
-{
-    Console.WriteLine($"Error updating article: {response.Error?.Message}");
-}
-```
-
-### e. Making DELETE Requests
-
-```csharp
-var request = StrapiRequest.Delete("articles", "/1"); // Delete article with ID 1
-var response = await _strapiRestClient.ExecuteAsync<object>(request); // Response data type can be 'object' or 'dynamic'
-
-if (response.IsSuccess)
-{
-    Console.WriteLine("Article deleted successfully.");
-}
-else
-{
-    Console.WriteLine($"Error deleting article: {response.Error?.Message}");
-}
-```
-
-
-This approach ensures your C# models match your exact Strapi v5 content structure, including all populated relations.
 
 ## 4. Error Handling
 

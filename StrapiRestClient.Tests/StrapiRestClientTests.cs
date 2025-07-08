@@ -57,6 +57,36 @@ namespace StrapiRestClient.Tests
         }
 
         [Fact]
+        public async Task Get_Article_6()
+        {
+            var request = new StrapiQueryRequest("articles")
+                                .AddFilter("id", 6)
+                                .WithPopulateAll();
+
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
+
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+            Assert.True(response.Data.First().id == 6);
+        }
+
+        [Fact]
+        public async Task Get_Article_Filter_Slug()
+        {
+            var request = new StrapiQueryRequest("articles")
+                                .AddFilter("slug", "beautiful-picture")
+                                .WithPopulateAll();
+
+            var response = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(request);
+
+            Assert.True(response.IsSuccess);
+            Assert.NotNull(response.Data);
+            Assert.NotEmpty(response.Data);
+            Assert.True(response.Data.First().Slug == "beautiful-picture");
+        }
+
+        [Fact]
         public async Task Get_Articles_Draft()
         {
             var request = new StrapiQueryRequest("articles")
@@ -400,6 +430,9 @@ namespace StrapiRestClient.Tests
             var secondPageRequest = new StrapiQueryRequest("articles")
                                          .WithPagination(page: 2, pageSize: 1)
                                          .WithSort("id:asc");
+
+            var query = firstPageRequest.ToQueryString();
+            var url = firstPageRequest.ToUrl();
 
             var firstPageResponse = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(firstPageRequest);
             var secondPageResponse = await _strapiRestClient.ExecuteAsync<ICollection<Article>>(secondPageRequest);
