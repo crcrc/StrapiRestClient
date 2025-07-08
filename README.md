@@ -155,6 +155,22 @@ if (response.IsSuccess)
 }
 ```
 
+#### Request Methods
+```csharp
+// Root level - "With" prefix for setting overall request options
+WithPopulateAll()     // populate=*
+WithFields()          // fields[]=...
+WithSort()            // sort[]=...
+WithPagination()      // pagination[...]
+
+// Adding specific items - "Add" prefix for adding to collections
+AddPopulate(relation)        // populate[relation]
+AddPopulateAll(relation)     // populate[relation][populate]=*
+AddFilter(field, value)      // filters[field]=value
+AddRelationFilter()          // filters[relation][field]=value
+```
+
+
 #### Debug URL Generation
 
 Use the new `GetQueryUrl` method to see exactly what URL will be generated:
