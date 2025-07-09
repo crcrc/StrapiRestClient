@@ -1,0 +1,20 @@
+﻿@using StrapiRestClient.Blocks.DataModels
+@model MediaBlockComponent
+
+@if (Model is not null && Model.file is not null)
+{
+    var thumbnail = Model?.file?.formats?.thumbnail;
+
+    <div class="card" style="width: 18rem;">
+        @if (thumbnail is not null)
+        {
+            <img class="card-img-top" src="@thumbnail.url" alt="@Model.file?.alternativeText">
+        }
+        <div class="card-body">
+            @if (string.IsNullOrWhiteSpace(Model?.file?.caption))
+            {
+                <h5 class="card-title">Model?.file?.caption</h5>
+            }
+        </div>
+    </div>
+}

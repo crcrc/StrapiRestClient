@@ -1,0 +1,73 @@
+﻿@using Example_Website.Models.Dto
+@using StrapiRestClient.Blocks.DataModels
+@using StrapiRestClient.Blocks.Extensions
+@model ArticleDto
+@{
+    ViewData["Title"] = $"{Model.Title}";
+}
+
+
+
+@if (Model is not null)
+{
+    <div class="text-center mb-5">
+        <h1 class="display-4">@Model.Title by @Model?.author?.name</h1>
+    </div>
+
+    var cover = Model?.Cover?.formats?.medium;
+
+    <div class="card h-100">
+        @if (cover is not null)
+        {
+            <img src="@cover?.url" class="card-img-top" alt="@Model?.Cover?.caption">
+        }
+
+        <div class="card-body">
+            <h5 class="card-title">@Model?.Title</h5>
+            <div class="d-flex justify-content-between">
+                <a asp-controller="Home" asp-action="Author" asp-route-id="@Model?.author?.name" class="card-link">@Model?.author?.name</a>
+                <a class="badge text-bg-secondary" asp-controller="Home" asp-action="Category" asp-route-id="@Model?.category?.slug" class="card-link">@Model?.category?.name</a>
+            </div>
+            <hr />
+            <p class="card-text">@Model?.Description</p>
+            <hr />
+            @{
+                // Find blocks via GetBlocksOfType()
+                // foreach(var quote in Model?.Blocks?.GetBlocksOfType<QuoteBlockComponent>())
+                // {
+                //     <partial name="_QuoteBlock" model="quote" />
+                // }
+                // or checking the type directly
+
+                foreach (var block in Model?.Blocks)
+                {
+                    if (block.GetType() == typeof(QuoteBlockComponent))
+                    {
+                        <partial name="_QuoteBlock" model="block" />
+                    }
+                    else if (block.GetType() == typeof(RichTextBlockComponent))
+                    {
+                        <partial name="_RichTextBlock" model="block" />
+                    }
+                    else if (block.GetType() == typeof(MediaBlockComponent))
+                    {
+                        <partial name="_MediaBlock" model="block" />
+                    }
+                    else if (block.GetType() == typeof(SliderBlockComponent))
+                    {
+                        <partial name="_SliderBlock" model="block" />
+                    }
+
+                }
+            }
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script type="text/javascript">
+        $(document).ready(function(){
+          $('.slider').slick();
+        });
+    </script>
+}

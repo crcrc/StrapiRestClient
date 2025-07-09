@@ -1,0 +1,14 @@
+﻿@using StrapiRestClient.Blocks.DataModels
+@model QuoteBlockComponent
+
+@if (Model is not null)
+{
+    <figure>
+        <blockquote class="blockquote">
+            <p>@Model.body</p>
+        </blockquote>
+        <figcaption class="blockquote-footer">
+            Someone famous in <cite title="Source Title">@Model.title</cite>
+        </figcaption>
+    </figure>
+}

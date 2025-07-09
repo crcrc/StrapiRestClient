@@ -1,0 +1,13 @@
+﻿@using Microsoft.AspNetCore.Components
+@using StrapiRestClient.Blocks.DataModels
+@model RichTextBlockComponent
+
+
+@if (Model is not null)
+{
+    string html = Markdig.Markdown.ToHtml(Model.body ?? "");
+
+    <div class="rich-text-block">
+        @Html.Raw(html)
+    </div>
+}

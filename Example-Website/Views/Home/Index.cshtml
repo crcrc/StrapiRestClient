@@ -1,0 +1,33 @@
+﻿@using Example_Website.Models.Dto
+@model HomeViewModel
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center mb-5">
+    <h1 class="display-4">Welcome To My Strapi Articles</h1>
+</div>
+
+<div class="row">
+    <div class="col-3">
+        <h3>Categories</h3>
+        <ul class="list-group">
+            @foreach (var category in Model.Categories)
+            {
+                <li class="list-group">
+                    <a href="@Url.Action("Index", "Home", new { slug = category.Value })" class="list-group">@category.Key</a>
+                </li>
+            }
+        </ul>
+    </div>
+    <div class="col">
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            @foreach (var article in Model.Articles)
+            {
+                <div class="col">
+                    <partial name="ArticlePreview" model="article" />
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,25 @@
+﻿@using StrapiRestClient.Blocks.DataModels
+@model SliderBlockComponent
+
+@if (Model is not null && Model.files is not null && Model.files.Any())
+{
+    <div class="slider">
+        @foreach (var m in Model.files)
+        {
+            var thumbnail = m.formats?.thumbnail;
+
+            <div class="card">
+                @if (thumbnail is not null)
+                {
+                    <img class="card-img-top" src="@thumbnail.url" alt="@m?.alternativeText">
+                }
+                <div class="card-body">
+                    @if (string.IsNullOrWhiteSpace(m?.caption))
+                    {
+                        <h5 class="card-title">m?.caption</h5>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}

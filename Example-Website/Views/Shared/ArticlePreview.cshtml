@@ -1,0 +1,26 @@
+﻿@using Example_Website.Models.Dto
+@model ArticleDto
+
+@if (Model is not null)
+{
+    var thumb = Model?.Cover?.formats?.thumbnail;
+
+    <div class="card h-100">
+        @if (thumb is not null)
+        {
+            <img src="@thumb?.url" class="card-img-top" alt="@Model?.Cover?.caption">
+        }
+      
+        <div class="card-body">
+            <h5 class="card-title">@Model?.Title</h5>
+            <p class="card-text">@Model?.Description</p>
+            <a asp-controller="Home" asp-action="Article" asp-route-slug="@Model?.Slug" class="btn btn-primary">View Article</a>
+        </div>
+        <div class="card-body">
+            By: <a asp-controller="Home" asp-action="Author" asp-route-slug="@Model?.author?.name" class="card-link">@Model?.author?.name</a>
+            <a class="badge text-bg-secondary" asp-controller="Home" asp-action="Index" asp-route-slug="@Model?.category?.slug" class="card-link">@Model?.category?.name</a>
+        </div>
+    </div>
+
+
+}

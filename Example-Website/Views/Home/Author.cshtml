@@ -1,0 +1,18 @@
+﻿@using Example_Website.Models.Dto
+@model AuthorViewModel
+@{
+    ViewData["Title"] = $"Articles by {Model.AuthorName}";
+}
+
+<div class="text-center mb-5">
+    <h1 class="display-4">Articles by @Model.AuthorName</h1>
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    @foreach (var article in Model.Articles)
+    {
+        <div class="col">
+            <partial name="ArticlePreview" model="article" />
+        </div>
+    }
+</div>
